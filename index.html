@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JoieM Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,900&display=swap" rel="stylesheet">
 </head>
 <body>
 <style>
 :root{
-  --paper:#FAFAFA; --card:#FFFFFF; --ink:#212121; --chrome:#FEF200; --hazard:#F03E24;
-  --signal:#50E661; --sky:#6BB1BD; --muted:#6B6B6B; --rule:#DCDCDC;
+  /* Paleta del brandbook de EvelynA: verde señal, amarillo cromo y rojo.
+     Fondo siempre claro y un solo acento por pantalla. */
+  --paper:#FAFAFA; --card:#FFFFFF; --ink:#212121; --chrome:#FFF200; --hazard:#F03F24;
+  --signal:#7EE78A; --sky:#8FD3F4; --muted:#6B6B6B; --rule:#DCDCDC;
   --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
   --switzer:"Helvetica Neue",Helvetica,Arial,sans-serif;
   --micro:11px; --tracking-micro:.12em; --tracking-display:-.03em;
@@ -32,8 +31,9 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 a{color:inherit}
 
 /* ===== APP SHELL ===== */
-#app{max-width:1240px;margin:0 auto;padding:20px 24px 80px}
-@media (max-width:720px){ #app{padding:14px 14px 60px} }
+#app{max-width:1240px;margin:0 auto;padding:40px 80px 96px}
+@media (max-width:1100px){ #app{padding:28px 40px 72px} }
+@media (max-width:720px){ #app{padding:16px 18px 60px} }
 
 /* ===== PORTADA =====
    Medidas tomadas del diseño de Canva (3000×358). Las unidades cqw escalan
@@ -44,7 +44,7 @@ a{color:inherit}
   background:#7EE78A;color:var(--ink);overflow:hidden;
 }
 .cover-dog{position:absolute;left:0;bottom:0;width:18.667cqw;height:auto;display:block}
-.cover-title{position:absolute;left:17.066cqw;top:3.22cqw;margin:0;font-family:"Archivo",var(--sans);font-stretch:75%;font-size:5.184cqw;font-weight:900;line-height:.8;letter-spacing:-.006em;white-space:nowrap}
+.cover-title{position:absolute;left:17.066cqw;top:3.22cqw;margin:0;font-family:var(--sans);font-stretch:condensed;font-size:5.184cqw;font-weight:900;line-height:.8;letter-spacing:-.006em;white-space:nowrap}
 .cover-sub{position:absolute;left:17.196cqw;top:7.492cqw;font-size:2cqw;font-weight:400;line-height:1;white-space:nowrap}
 .cover-logo{position:absolute;right:3.833cqw;top:4.2cqw;width:12.467cqw}
 .cover-logo svg{display:block;width:100%;height:auto}
@@ -63,7 +63,7 @@ a{color:inherit}
 .sync-dot.-local{background:var(--chrome)}
 
 /* ===== TABS ===== */
-.tabs{display:flex;gap:0;border-bottom:2px solid var(--ink);margin-bottom:28px;overflow-x:auto}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--ink);margin-bottom:40px;overflow-x:auto}
 .tab-btn{
   appearance:none;border:none;background:none;cursor:pointer;
   font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
@@ -79,8 +79,8 @@ a{color:inherit}
 .view-head .sub{color:var(--muted);font-size:15px;max-width:56ch;margin-top:6px}
 
 /* ===== KPI GRID ===== */
-.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;background:var(--ink);border:2px solid var(--ink);margin-bottom:28px}
-.kpi{background:var(--card);padding:18px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;background:var(--ink);border:2px solid var(--ink);margin-bottom:44px}
+.kpi{background:var(--card);padding:24px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .kpi.-accent{background:var(--signal)}
 .kpi.-warn{background:var(--hazard);color:var(--paper)}
 .kpi .num{font-family:var(--sans);font-weight:900;font-stretch:condensed;font-size:clamp(28px,3.4vw,44px);line-height:1}
@@ -100,9 +100,9 @@ a{color:inherit}
 .status-banner .txt span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 
 /* ===== FASE PROGRESS ROW ===== */
-.fase-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px}
+.fase-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:44px}
 @media (max-width:820px){.fase-row{grid-template-columns:repeat(2,1fr)}}
-.fase-card{border:2px solid var(--ink);padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--card)}
+.fase-card{border:2px solid var(--ink);padding:22px;display:flex;flex-direction:column;gap:12px;background:var(--card)}
 .fase-card .flabel{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;min-height:2.4em}
 .fase-card .fsub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .fase-bar{height:10px;background:var(--paper);border:1.5px solid var(--ink);position:relative;overflow:hidden}
@@ -112,12 +112,14 @@ a{color:inherit}
 
 /* ===== OBJETIVO / PRIORIDADES BLOCK ===== */
 .strategy-block{border:2px solid var(--ink);margin-bottom:32px;background:var(--card)}
-.strategy-block .obj-head{padding:22px 24px;border-bottom:2px solid var(--ink);background:var(--chrome)}
-.strategy-block .obj-head .micro{color:var(--ink);opacity:.7}
+.strategy-block .obj-head{padding:26px 28px;border-bottom:2px solid var(--ink);background:var(--card)}
+/* El resaltado va sobre la palabra, no en un bloque suelto. */
+.strategy-block .obj-head p mark{background:var(--chrome);color:var(--ink);padding:0 .12em}
+.strategy-block .obj-head .micro{color:var(--muted)}
 .strategy-block .obj-head p{font-size:17px;line-height:1.4;max-width:80ch;margin-top:8px;font-weight:500}
 .prio-list{display:grid;grid-template-columns:repeat(3,1fr)}
 @media (max-width:820px){.prio-list{grid-template-columns:1fr}}
-.prio-item{padding:20px 22px;border-right:2px solid var(--ink)}
+.prio-item{padding:26px 24px;border-right:2px solid var(--ink)}
 .prio-item:last-child{border-right:none}
 @media (max-width:820px){.prio-item{border-right:none;border-bottom:2px solid var(--ink)}.prio-item:last-child{border-bottom:none}}
 .prio-item .n{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em}
@@ -1254,7 +1256,7 @@ function renderDashboard(root){
     <div class="strategy-block">
       <div class="obj-head">
         <span class="micro">Objetivo · JoieM</span>
-        <p>${OBJETIVO || "Todavía sin objetivo cargado. Se carga desde la pestaña Notas."}</p>
+        <p>${OBJETIVO ? `<mark>${escHtml(OBJETIVO)}</mark>` : "Todavía sin objetivo cargado. Se carga desde la pestaña Notas."}</p>
       </div>
       <div class="prio-list">
         ${PRIORIDADES.map(p=>`
