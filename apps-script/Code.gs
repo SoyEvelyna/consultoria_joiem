@@ -26,6 +26,28 @@
 function crearSheet() { Logger.log(JSON.stringify(crearSheet_(), null, 2)); }
 function verEstado() { Logger.log(JSON.stringify(diagnostico_(), null, 2)); }
 
+/* Diagnóstico: muestra cómo vienen los mails de Fathom para escribir el
+   lector automático. Solo lee, no toca nada. */
+function verFathom() {
+  var hilos = GmailApp.search('from:(fathom.video OR fathom.ai) newer_than:120d', 0, 5);
+  if (!hilos.length) {
+    Logger.log("No encontré mails de Fathom en los últimos 120 días. Probá buscar en Gmail: from:fathom.video");
+    return;
+  }
+  var out = hilos.map(function (h) {
+    var m = h.getMessages()[0];
+    var cuerpo = String(m.getPlainBody() || "");
+    return {
+      fecha: Utilities.formatDate(m.getDate(), "America/Argentina/Buenos_Aires", "yyyy-MM-dd HH:mm"),
+      de: m.getFrom(),
+      asunto: m.getSubject(),
+      links: (cuerpo.match(/https?:\/\/[^\s)>\]]+/g) || []).slice(0, 8),
+      arranque: cuerpo.slice(0, 700)
+    };
+  });
+  Logger.log(JSON.stringify(out, null, 2));
+}
+
 var ACCESS_TOKEN = "LiLjpLsOWEB9vj3FI2cMIfbrOqxEuRho";
 
 /* Id del Sheet del cliente. Vacío hasta correr crearSheet(). */
