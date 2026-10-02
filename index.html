@@ -125,6 +125,7 @@ a{color:inherit}
 .prio-item .n{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em}
 .prio-item h4{font-size:16px;text-transform:uppercase;margin:6px 0 8px;letter-spacing:-.01em}
 .prio-item p{font-size:13.5px;line-height:1.5;color:var(--muted)}
+.prio-item .prio-avance{margin-top:14px;display:flex;flex-direction:column;gap:7px}
 
 /* ===== FILTER BAR ===== */
 .filter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px;padding:14px;border:2px solid var(--ink);background:var(--card)}
@@ -152,6 +153,14 @@ a{color:inherit}
 .group-head h3{font-size:19px;text-transform:uppercase;letter-spacing:-.01em}
 .group-head .count{font-size:12px;color:var(--muted);font-weight:700}
 .group-head .swatch{width:14px;height:14px;flex:none;background:var(--signal)}
+.group-head .gh-prog{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--muted)}
+.group-head .gh-prog .bar{width:120px;height:8px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden}
+.group-head .gh-prog .bar i{display:block;height:100%;background:var(--signal)}
+.group-head .gh-prog b{color:var(--ink)}
+@media (max-width:600px){.group-head .gh-prog .bar{display:none}}
+.task-row .col-area{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.tk-prio{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border:1.5px solid var(--ink);color:var(--ink)}
+.tk-prio.-sin{border-color:var(--rule);color:var(--muted)}
 
 /* ===== TASK LIST ===== */
 .task-list{display:flex;flex-direction:column;border-top:2px solid var(--ink)}
@@ -427,7 +436,9 @@ function aplicarTablero_(){
    de la hoja). Lo que todavía no tiene prioridad cargada va al final. */
 const SIN_PRIO = 0;
 function prioridadNum(t){
-  const m = String(t.prioridad||"").match(/[123]/);
+  /* Vale de P1 a P9: si una tarea quedó con P4 o P5, se respeta en vez de
+     mandarla al grupo "Sin prioridad". */
+  const m = String(t.prioridad||"").match(/[1-9]/);
   return m ? Number(m[0]) : SIN_PRIO;
 }
 function prioridadLabel(n){
@@ -436,9 +447,20 @@ function prioridadLabel(n){
   return "P"+n+(p && p.tt ? " · "+p.tt : "");
 }
 function gruposDelTablero(tasks){
-  const usados = [1,2,3].filter(n=> tasks.some(t=>prioridadNum(t)===n));
+  const usados = [];
+  tasks.forEach(t=>{ const n = prioridadNum(t); if(n!==SIN_PRIO && usados.indexOf(n)===-1) usados.push(n); });
+  usados.sort((a,b)=> a-b);
   if(tasks.some(t=>prioridadNum(t)===SIN_PRIO)) usados.push(SIN_PRIO);
   return usados.length ? usados : [SIN_PRIO];
+}
+
+/* Avance de una prioridad: cuántas de sus tareas ya están finalizadas.
+   Se mide siempre sobre el tablero completo, no sobre lo filtrado, para que
+   el porcentaje signifique lo mismo en el dashboard y en cada listado. */
+function avancePrioridad(n, pool){
+  const items = (pool || trackedTasks()).filter(t=>prioridadNum(t)===n);
+  const done = items.filter(t=>currentEstado(t)==="Completado").length;
+  return { total: items.length, done: done, pct: items.length ? Math.round((done/items.length)*100) : 0 };
 }
 /* Los temas siguen estando: sirven para filtrar y se ven en cada fila. */
 const SIN_TEMA = "Sin tema";
@@ -1261,12 +1283,18 @@ function renderDashboard(root){
         <p>${OBJETIVO ? `<mark>${escHtml(OBJETIVO)}</mark>` : "Todavía sin objetivo cargado. Se carga desde la pestaña Notas."}</p>
       </div>
       <div class="prio-list">
-        ${PRIORIDADES.map(p=>`
+        ${PRIORIDADES.map(p=>{
+          const a = avancePrioridad(Number(p.n), tasks);
+          return `
           <div class="prio-item">
             <span class="n">Prioridad ${p.n}</span>
             <h4>${p.tt || "Sin definir"}</h4>
             <p>${p.desc}</p>
-          </div>`).join("")}
+            <div class="prio-avance">
+              <div class="fase-bar"><i style="width:${a.pct}%"></i></div>
+              <div class="fase-nums"><span><b>${a.done}</b>/${a.total} listas</span><span><b>${a.pct}%</b></span></div>
+            </div>
+          </div>`;}).join("")}
       </div>
     </div>
 
@@ -1355,7 +1383,9 @@ function taskRow(t){
   row.className = "task-row" + (overdue ? " -overdue" : "");
   const stClass = estadoClass(estado);
   row.innerHTML = `
-    <div class="col-area"><span class="tk-tema">${t.area || "—"}</span></div>
+    <div class="col-area">${t.source==="etapa1" ? '<span class="tk-tema">—</span>'
+      : prioridadNum(t) ? `<span class="tk-prio">P${prioridadNum(t)}</span>`
+      : '<span class="tk-prio -sin">Sin prioridad</span>'}</div>
     <div class="col-tema"><span class="tk-tema">${t.tema || "—"}${t.subfase?" · "+t.subfase:""}</span></div>
     <div class="col-tarea"><span class="tk-tarea">${t.tarea}${overdue?'<span class="tk-flags"><span class="flag">Vencida</span></span>':''}${t.source==="custom"&&!t.edited?'<span class="custom-tag">Nueva</span>':''}${link?' 🔗':''}</span></div>
     <div class="col-resp"><span class="tk-resp">${respLabel(t.responsable)}</span></div>
@@ -1399,7 +1429,7 @@ function taskListHead(){
   head.style.borderBottom = "2px solid var(--ink)";
   head.style.paddingBottom = "8px";
   head.innerHTML = `
-    <div class="micro">Área</div><div class="micro">Tema</div><div class="micro">Tarea</div><div class="micro">Responsable</div>
+    <div class="micro">Prioridad</div><div class="micro">Tema</div><div class="micro">Tarea</div><div class="micro">Responsable</div>
     <div class="micro">Fechas</div><div class="micro">Estado</div><div class="micro">Observaciones</div><div></div>
   `;
   return head;
@@ -1449,7 +1479,9 @@ function renderTaskGroups(root, pool, emptyMsg){
     if(enGrupo.length===0) return;
     const gh = document.createElement("div");
     gh.className = "group-head";
-    gh.innerHTML = `<span class="swatch"></span><h3>${escHtml(prioridadLabel(n))}</h3><span class="count">${enGrupo.length} tareas</span>`;
+    const av = avancePrioridad(n);
+    gh.innerHTML = `<span class="swatch"></span><h3>${escHtml(prioridadLabel(n))}</h3><span class="count">${enGrupo.length} tareas</span>`
+      + `<span class="gh-prog"><span class="bar"><i style="width:${av.pct}%"></i></span><span><b>${av.done}</b>/${av.total} listas · <b>${av.pct}%</b></span></span>`;
     list.appendChild(gh);
     list.appendChild(taskListHead());
     enGrupo.forEach(t=> list.appendChild(taskRow(t)));
@@ -1650,11 +1682,17 @@ function renderNotas(root){
         <button class="btn-secondary btn-sm" id="obj-edit" style="margin-top:10px">Editar objetivo</button>
       </div>
       <div class="prio-list" style="grid-template-columns:1fr">
-        ${PRIORIDADES.map(p=>`<div class="prio-item" style="border-right:none;border-bottom:2px solid var(--ink)">
+        ${PRIORIDADES.map(p=>{
+          const a = avancePrioridad(Number(p.n));
+          return `<div class="prio-item" style="border-right:none;border-bottom:2px solid var(--ink)">
             <span class="n">Prioridad ${p.n}</span>
             <h4>${p.tt || "Sin definir"}</h4>
-            <button class="btn-secondary btn-sm" data-prio="${p.n}">Editar prioridad ${p.n}</button>
-          </div>`).join("")}
+            <div class="prio-avance">
+              <div class="fase-bar"><i style="width:${a.pct}%"></i></div>
+              <div class="fase-nums"><span><b>${a.done}</b>/${a.total} listas</span><span><b>${a.pct}%</b></span></div>
+            </div>
+            <button class="btn-secondary btn-sm" data-prio="${p.n}" style="margin-top:12px">Editar prioridad ${p.n}</button>
+          </div>`;}).join("")}
       </div>
     </div>
   `;
