@@ -462,7 +462,7 @@ function normEstado(raw){
   if(s.startsWith("test")) return "Testear";
   return "Por hacer";
 }
-const RESP_INITIALS = {"Eve":"EV","Ger":"GE","Fer":"FE","Ari":"AR","Loopa":"LO","Supervisores":"SU","Equipo":"EQ"};
+const RESP_INITIALS = {"Vero":"VE","Eve":"EV","Equipo":"EQ"};
 function initials(r){
   if(!r) return "—";
   if(RESP_INITIALS[r]) return RESP_INITIALS[r];
@@ -1145,7 +1145,8 @@ const ESTADOS = ["Por hacer","En proceso","En revisión","Testear","Completado"]
 const ESTADO_LABEL = {"Por hacer":"Pendiente","En proceso":"En proceso","En revisión":"Revisar","Testear":"Testear","Completado":"Finalizada"};
 function estadoLabel(e){ return ESTADO_LABEL[e] || e; }
 function estadoClass(e){ return "st-" + String(e||"").replace(/\s+/g,"-").replace("ó","o"); }
-const RESPONSABLES = ["Eve","Ger","Fer","Ari","Loopa","Supervisores","Equipo"];
+/* El equipo de JoieM. Se pueden sumar más desde el desplegable. */
+const RESPONSABLES = ["Vero","Eve"];
 
 function trackedTasks(){
   const seed = TASKS.filter(t=>t.source!=="etapa1")

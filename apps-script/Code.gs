@@ -26,6 +26,19 @@
 function crearSheet() { Logger.log(JSON.stringify(crearSheet_(), null, 2)); }
 function verEstado() { Logger.log(JSON.stringify(diagnostico_(), null, 2)); }
 
+/* Deja el desplegable de RESPONSABLE de la hoja 02 con el equipo del cliente,
+   para que el Sheet ofrezca lo mismo que el tablero. */
+var RESPONSABLES_SHEET = ["Vero", "Eve"];
+function ponerResponsables() {
+  var L = procesoLayout_();
+  if (L.cols.responsable === undefined) throw new Error("No encuentro la columna RESPONSABLE");
+  var regla = SpreadsheetApp.newDataValidation()
+    .requireValueInList(RESPONSABLES_SHEET, true).setAllowInvalid(true).build();
+  var desde = L.C.header + 2; // primera fila de tareas
+  L.sheet.getRange(desde, L.cols.responsable, 200, 1).setDataValidation(regla);
+  Logger.log(JSON.stringify({ opciones: RESPONSABLES_SHEET, desdeFila: desde }));
+}
+
 /* Diagnóstico: muestra cómo vienen los mails de Fathom para escribir el
    lector automático. Solo lee, no toca nada. */
 function verFathom() {
