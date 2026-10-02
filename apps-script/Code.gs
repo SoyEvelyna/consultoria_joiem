@@ -74,6 +74,11 @@ SHEET_SCHEMAS[SHEET_NOTES] = ["id", "text", "author", "createdAt"];
 
 /* Vocabulario del tablero. Los mismos estados que usa la web. */
 var ESTADOS_SHEET = ["Pendiente", "En proceso", "Revisar", "Testear", "Finalizada"];
+/* La web maneja estados internos; la hoja usa estas palabras. */
+var ESTADO_A_SHEET = {
+  "Por hacer": "Pendiente", "En proceso": "En proceso", "En revisión": "Revisar",
+  "Testear": "Testear", "Completado": "Finalizada"
+};
 var PRIORIDADES_SHEET = ["P1", "P2", "P3"];
 
 /* Encabezados de la hoja 02 (en este orden). */
@@ -600,7 +605,9 @@ function writeTaskCells_(L, row, fields) {
     var cell = L.sheet.getRange(row, L.cols[k]);
     var v = fields[k];
     if (v === null || v === "") { try { cell.setValue(""); } catch (err) {} return; }
-    var candidatos = (k === "inicio" || k === "cierre") ? [toSheetDate_(v)] : [v];
+    var candidatos = (k === "inicio" || k === "cierre") ? [toSheetDate_(v)]
+      : k === "estado" ? [ESTADO_A_SHEET[v] || v, v]
+      : [v];
     if (!setSafe_(cell, candidatos)) perdidos.push(k.charAt(0).toUpperCase() + k.slice(1) + ": " + v);
   });
   if (L.cols.obs !== undefined && (fields.obs !== undefined || fields.link !== undefined || perdidos.length)) {
@@ -619,7 +626,10 @@ function moveRow_(sheet, fromRow, afterRow) {
   return fromRow < to ? to - 1 : to;
 }
 
-function esFinalizada_(estado) { return /^final/i.test(String(estado || "")); }
+function esFinalizada_(estado) {
+  var e = String(estado || "");
+  return /^final/i.test(e) || /^completad/i.test(e);
+}
 
 function updateTask_(id, fields) {
   var L = procesoLayout_();
