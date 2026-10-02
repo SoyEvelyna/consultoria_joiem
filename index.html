@@ -573,7 +573,8 @@ function hashId(str){
 function mk(base, source){
   const key = source==="etapa1"
     ? ["reunion", base.tarea||"", base.inicio||""].join("|")
-    : [tableroActivo, source, base.tema||"", base.tarea||""].join("|");
+    /* Mismo id que calcula el backend: fuente + tema + tarea. */
+    : [source, base.tema||"", base.tarea||""].join("|");
   idSeen[key] = (idSeen[key]||0) + 1;
   const id = hashId(key + "#" + idSeen[key]);
   const estadoOriginal = base.estado || null;
