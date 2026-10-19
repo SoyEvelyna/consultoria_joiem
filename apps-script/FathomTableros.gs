@@ -27,14 +27,22 @@ function activarFathom() { Logger.log(JSON.stringify(activar_(), null, 2)); }
 function desactivarFathom() { Logger.log(JSON.stringify(desactivar_(), null, 2)); }
 
 /* Los cuatro tableros. "claves" son las palabras que delatan al cliente en
-   el título de la reunión o en el participante, sin acentos y en minúscula. */
+   el título de la reunión o en los participantes, sin acentos y en minúscula.
+
+   OJO con quién se pone acá: Push (marketingdigital.push@gmail.com) trabaja
+   con Weber Y con Noctis, así que no es clave de ninguno. Las reuniones con
+   Push se resuelven por el otro participante: si está alguien de Weber va a
+   Weber, si está alguien de Noctis va a Noctis, y si no se puede saber queda
+   sin asignar en vez de adivinar. */
 var CLIENTES = [
   { nombre: "Weber", sheetId: "1rD90bzuYCm4HBJNMYvJDe_0dEaY25ED4zIL4xYKDhd0",
-    claves: ["weber", "webersi"] },
+    claves: ["weber", "webersi", "gweber", "loopa.io", "juliana@loopa", "leo@loopa"] },
   { nombre: "Noctis", sheetId: "1ELzLOSN7QbpKgmJ64WXPWhf_Yc1qR1h0UVcutlurhTI",
-    claves: ["noctis", "natalia pereira", "manataliapereira", "nataliapereira"] },
+    claves: ["noctis", "natalia pereira", "manataliapereira", "nataliapereira",
+             "leandro.pachame", "ramirezaldana97"] },
   { nombre: "Gulli", sheetId: "1fz9FefdaKjy3MRH371d7hjIdxiFryatsAIqwgAaVj4o",
-    claves: ["gulli", "dra gulli", "dragulli", "daniela gulli"] },
+    claves: ["gulli", "dra gulli", "dragulli", "daniela gulli",
+             "centrodermatologico", "clinicagulli", "danielaluciapaterno", "bamconsultoria"] },
   { nombre: "JoieM", sheetId: "1BIQZUKiUkIdIHQCdbHi2ci6cPsoOjjxCi95fYblbJ4g",
     claves: ["joiem", "joie m", "joa m", "maglioco", "mvmaglioco", "veronica maglioco"] }
 ];
@@ -59,7 +67,10 @@ function correr_(soloProbar) {
     resultado.revisados++;
     var datos = leerMail_(msg);
     if (!datos.cliente) {
-      resultado.sinCliente.push({ asunto: datos.asunto, fecha: datos.fecha });
+      /* Se distingue "no sé de quién es" de "podría ser de dos": la segunda
+         necesita que Evelyn decida, no una clave nueva. */
+      resultado.sinCliente.push({ asunto: datos.asunto, fecha: datos.fecha,
+        entre: datos.ambiguo || undefined, link: datos.link || undefined });
       return;
     }
     if (yaCargada_(datos)) {
@@ -100,13 +111,16 @@ function leerMail_(msg) {
   var fecha = Utilities.formatDate(msg.getDate(), ZONA, "yyyy-MM-dd");
   var titulo = tituloDe_(asunto);
   var aguja = sinAcentos_(asunto + " " + cuerpo.slice(0, 1500));
-  var cliente = null;
-  CLIENTES.forEach(function (c) {
-    if (cliente) return;
-    if (c.claves.some(function (k) { return aguja.indexOf(k) !== -1; })) cliente = c;
+  /* Se juntan TODOS los que aparecen, no el primero: si una reunión nombra a
+     dos clientes no hay forma de saber de cuál es, y cargarla en el primero
+     de la lista sería inventar. En ese caso queda sin asignar y se avisa. */
+  var candidatos = CLIENTES.filter(function (c) {
+    return c.claves.some(function (k) { return aguja.indexOf(k) !== -1; });
   });
+  var cliente = candidatos.length === 1 ? candidatos[0] : null;
   return {
     asunto: asunto, fecha: fecha, titulo: titulo, cliente: cliente,
+    ambiguo: candidatos.length > 1 ? candidatos.map(function (c) { return c.nombre; }) : null,
     link: linkDe_(cuerpo), horas: horasDe_(cuerpo), resumen: resumenDe_(cuerpo)
   };
 }
