@@ -80,10 +80,12 @@ var HOJA_ETAPA1 = "01 I Plan de trabajo";
 var HOJA_PROCESO = "02 I Proceso de trabajo";
 var SHEET_OVERRIDES = "WebApp - Overrides";
 var SHEET_NOTES = "WebApp - Notas";
+var SHEET_LOGS = "WebApp - Logs";
 
 var SHEET_SCHEMAS = {};
 SHEET_SCHEMAS[SHEET_OVERRIDES] = ["task_id", "estado", "link", "inicio", "cierre", "hidden", "updated_at"];
 SHEET_SCHEMAS[SHEET_NOTES] = ["id", "text", "author", "createdAt"];
+SHEET_SCHEMAS[SHEET_LOGS] = ["id", "ts", "autor", "accion", "tarea", "detalle"];
 
 /* Vocabulario del tablero. Los mismos estados que usa la web. */
 var ESTADOS_SHEET = ["Pendiente", "En proceso", "Revisar", "Testear", "Finalizada"];
@@ -182,7 +184,8 @@ function doGet(e) {
       ok: true,
       seed: readSeed_(),
       overrides: readOverrides_(),
-      notes: readSimpleRows_(SHEET_NOTES, SHEET_SCHEMAS[SHEET_NOTES])
+      notes: readSimpleRows_(SHEET_NOTES, SHEET_SCHEMAS[SHEET_NOTES]),
+      logs: readLogs_()
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: String(err && err.message || err) });
@@ -212,6 +215,7 @@ function handleAction_(action, p) {
     case "setObjetivo": return setObjetivo_(p.objetivo);
     case "setPrioridad": return setPrioridad_(p.n, p.texto);
     case "setOverride": return setOverride_(p.taskId, p.patch || {});
+    case "addLog": return addRow_(SHEET_LOGS, SHEET_SCHEMAS[SHEET_LOGS], p);
     case "addNote": return addRow_(SHEET_NOTES, SHEET_SCHEMAS[SHEET_NOTES],
       Object.assign({ id: "n" + Date.now(), createdAt: nowIso_() }, p));
     case "deleteNote": return deleteRow_(SHEET_NOTES, p.id);
@@ -722,6 +726,35 @@ function readOverrides_() {
       updatedAt: r.updated_at || null
     };
   });
+  return out;
+}
+
+/* =====================================================================
+   LOGS · registro de ediciones
+   Cada cambio hecho desde la web agrega una fila. Se leen sólo los últimos
+   movimientos: la hoja crece sin tope y el tablero muestra los días recientes.
+   ===================================================================== */
+var LOGS_MAX = 500;
+
+function readLogs_() {
+  var sheet = ss_().getSheetByName(SHEET_LOGS);
+  if (!sheet) return [];
+  var last = sheet.getLastRow();
+  if (last < 2) return [];
+  var cols = SHEET_SCHEMAS[SHEET_LOGS];
+  var desde = Math.max(2, last - LOGS_MAX + 1);
+  var values = sheet.getRange(desde, 1, last - desde + 1, cols.length).getValues();
+  var out = [];
+  for (var r = 0; r < values.length; r++) {
+    if (!cell_(values[r], 0)) continue;
+    var obj = {};
+    for (var c = 0; c < cols.length; c++) {
+      var v = cell_(values[r], c);
+      if (cols[c] === "ts" && v instanceof Date) v = v.toISOString();
+      obj[cols[c]] = (v === null || v === undefined) ? "" : String(v);
+    }
+    out.push(obj);
+  }
   return out;
 }
 
