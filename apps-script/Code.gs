@@ -212,8 +212,9 @@ function handleAction_(action, p) {
     case "updateTask": return updateTask_(p.id, p.fields || {});
     case "addTask": return addTask_(p.fields || {});
     case "deleteTask": return deleteTask_(p.id);
-    case "setObjetivo": return setObjetivo_(p.objetivo);
-    case "setPrioridad": return setPrioridad_(p.n, p.texto);
+    case "setObjetivo": return setObjetivo_(p.texto !== undefined ? p.texto : p.objetivo);
+    case "setPrioridad": return setPrioridad_(p.n, p.texto, p.desc);
+    case "agregarPrioridad": return agregarPrioridad_(p.texto, p.desc);
     case "setOverride": return setOverride_(p.taskId, p.patch || {});
     case "addLog": return addRow_(SHEET_LOGS, SHEET_SCHEMAS[SHEET_LOGS], p);
     case "quitarOpcion": return quitarOpcion_(p.campo, p.valor);
@@ -393,7 +394,10 @@ function readSeed_() {
   if (prioridadesRow !== -1) {
     for (var i = 0; i < 3; i++) {
       var fila = values[prioridadesRow + 2 + i] || [];
-      prioridades.push({ n: i + 1, tt: String(cell_(fila, 2) || ""), desc: "" });
+      /* Primera línea el título, el resto la descripción: la misma
+         convención que los otros tableros. */
+      var lineasPr = String(cell_(fila, 2) || "").split(/\n/);
+      prioridades.push({ n: i + 1, tt: lineasPr[0].trim(), desc: lineasPr.slice(1).join("\n").trim() });
     }
   }
 
@@ -502,16 +506,66 @@ function setObjetivo_(texto) {
   return { objetivo: texto || "" };
 }
 
-function setPrioridad_(n, texto) {
+function setPrioridad_(n, texto, desc) {
   var num = Number(n);
-  if (!(num >= 1 && num <= 3)) throw new Error("La prioridad tiene que ser 1, 2 o 3");
+  if (!(num >= 1 && num <= 9)) throw new Error("La prioridad tiene que ser un número del 1 al 9");
   var sheet = ss_().getSheetByName(HOJA_PROCESO);
   var values = sheet.getDataRange().getValues();
   var fila = findLabelRow_(values, "PRIORIDADES");
   if (fila === -1) throw new Error("No encuentro el bloque PRIORIDADES en la hoja 02");
+  var lineas = [String(texto === null || texto === undefined ? "" : texto).trim()];
+  var d = (desc === null || desc === undefined) ? "" : String(desc).trim();
+  if (d) lineas = lineas.concat(d.split(/\n/));
   sheet.getRange(fila + 2 + num, 2).setValue(num);
-  sheet.getRange(fila + 2 + num, 3).setValue(texto || "");
-  return { n: num, texto: texto || "" };
+  sheet.getRange(fila + 2 + num, 3).setValue(lineas.join("\n"));
+  return { n: num, texto: lineas[0], desc: d };
+}
+
+/* Suma una prioridad al final del bloque. La hoja la arma el propio tablero,
+   así que las filas son simples: número en B y texto en C. */
+function agregarPrioridad_(texto, desc) {
+  var sheet = ss_().getSheetByName(HOJA_PROCESO);
+  var values = sheet.getDataRange().getValues();
+  var inicio = findLabelRow_(values, "PRIORIDADES");
+  if (inicio === -1) throw new Error("No encuentro el bloque PRIORIDADES en la hoja 02");
+  var iniciativasRow = findLabelRow_(values, "INICIATIVAS");
+  var fin = iniciativasRow === -1 ? values.length : iniciativasRow;
+
+  var ultima = 0, filaUltima = -1;
+  for (var r = inicio + 2; r < fin; r++) {
+    var num = cell_(values[r], 1);
+    if (num === null || isNaN(Number(num))) continue;
+    if (Number(num) > ultima) { ultima = Number(num); filaUltima = r; }
+  }
+  if (filaUltima === -1) throw new Error("No encuentro ninguna prioridad para copiar el formato");
+  if (ultima >= 9) throw new Error("Ya hay 9 prioridades, que es el máximo que maneja el tablero");
+
+  var filaOrigen = filaUltima + 1, filaNueva = filaOrigen + 1;
+  var ancho = Math.max(sheet.getLastColumn(), 3);
+  sheet.insertRowAfter(filaOrigen);
+  sheet.getRange(filaOrigen, 1, 1, ancho).copyTo(sheet.getRange(filaNueva, 1, 1, ancho), { formatOnly: true });
+  sheet.getRange(filaOrigen, 1, 1, ancho).getMergedRanges().forEach(function (m) {
+    if (m.getNumRows() !== 1) return;
+    sheet.getRange(filaNueva, m.getColumn(), 1, m.getNumColumns()).merge();
+  });
+
+  var lineas = [String(texto === null || texto === undefined ? "" : texto).trim()];
+  var d2 = (desc === null || desc === undefined) ? "" : String(desc).trim();
+  if (d2) lineas = lineas.concat(d2.split(/\n/));
+  sheet.getRange(filaNueva, 2).setValue(ultima + 1);
+  sheet.getRange(filaNueva, 3).setValue(lineas.join("\n"));
+
+  var etiquetas = [];
+  for (var i = 1; i <= ultima + 1; i++) etiquetas.push("P" + i);
+  var L = procesoLayout_();
+  if (L.cols && L.cols.prioridad !== undefined) {
+    var desde = L.cols.header + 3;
+    var regla = SpreadsheetApp.newDataValidation()
+      .requireValueInList(etiquetas, true).setAllowInvalid(true).build();
+    sheet.getRange(desde, L.cols.prioridad + 1, Math.max(sheet.getMaxRows() - desde + 1, 1), 1)
+      .setDataValidation(regla);
+  }
+  return { n: ultima + 1, texto: lineas[0], fila: filaNueva, opciones: etiquetas };
 }
 
 /* =====================================================================
